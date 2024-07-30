@@ -1,0 +1,714 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class handler {
+public:
+    string msg;
+    handler(string str) {
+        msg = str;
+    }
+};
+
+class Table {
+public:
+    int tableNumber;
+    int seatingCapacity;
+    bool reservationStatus;
+
+    Table(int number, int capacity) : tableNumber(number), seatingCapacity(capacity), reservationStatus(false) {}
+
+    void ReserveTable() {
+        reservationStatus = true;
+    }
+
+    void MarkOccupied() {
+        reservationStatus = true;
+    }
+
+    void MarkAvailable() {
+        reservationStatus = false;
+    }
+
+    bool GetTableStatus() {
+        return reservationStatus;
+    }
+
+    int GetTableNumber() {
+        return tableNumber;
+    }
+
+    bool IsReserved() const {
+        return reservationStatus;
+    }
+
+    void CancelReservation() {
+        reservationStatus = false;
+    }
+};
+
+class Reservation {
+private:
+    string customerName;
+    string contactDetails;
+    string reservationDateTime;
+    int numberOfGuests;
+    Table* table;
+
+public:
+    Reservation(const string& name, const string& contact, const string& dateTime, int guests)
+        : customerName(name), contactDetails(contact), reservationDateTime(dateTime), numberOfGuests(guests), table(nullptr) {}
+
+    void AssignTable(Table* assignedTable) {
+        table = assignedTable;
+        if (assignedTable) {
+            assignedTable->ReserveTable();
+            cout << "Table number " << assignedTable->tableNumber << " booked for " << customerName << endl;
+        }
+    }
+
+    Table* GetTable() const {
+        return table;
+    }
+
+    void CancelReservation() {
+        if (table) {
+            table->CancelReservation();
+            table = nullptr;
+            cout << "Reservation canceled" << endl;
+        }
+    }
+};
+
+class Menu {
+private:
+    vector<string> dishes;
+    vector<double> prices;
+
+public:
+    void AddDish(const string& dish, double price) {
+        dishes.push_back(dish);
+        prices.push_back(price);
+    }
+
+    void RemoveDish(const string& dish) {
+        for (size_t i = 0; i < dishes.size(); ++i) {
+            if (dishes[i] == dish) {
+                dishes.erase(dishes.begin() + i);
+                prices.erase(prices.begin() + i);
+                break;
+            }
+        }
+    }
+
+    void DisplayMenu() {
+        cout << "Menu:\n";
+        for (size_t i = 0; i < dishes.size(); ++i) {
+            cout << "- " << dishes[i] << " (" << prices[i] << " Rs)\n";
+        }
+    }
+
+    const vector<string>& GetDishes() const {
+        return dishes;
+    }
+
+    const vector<double>& GetPrices() const {
+        return prices;
+    }
+};
+
+class Order {
+public:
+    Table& table;
+    vector<string> items;
+    double totalPrice;
+    string status;
+    Order(Table& t) : table(t), totalPrice(0.0), status("Pending") {}
+
+    void AddItem(const string& item) {
+        items.push_back(item);
+    }
+
+    void RemoveItem(const string& item) {
+        for (auto it = items.begin(); it != items.end(); ++it) {
+            if (*it == item) {
+                items.erase(it);
+                break;
+            }
+        }
+    }
+
+    double CalculateTotalPrice(const Menu& menu) {
+        totalPrice=0;
+        for (const auto& item : items) {
+            for (size_t i = 0; i < menu.GetDishes().size(); i++) {
+                if (menu.GetDishes()[i] == item) {
+                    totalPrice += menu.GetPrices()[i];
+                    break;
+                }
+            }
+        }
+        return totalPrice;
+    }
+
+    Table& GetTable() {
+        return table;
+    }
+
+    void UpdateStatus(const string& newStatus) {
+        status = newStatus;
+    }
+
+    void DisplayOrder() {
+        cout << "Order for Table " << table.GetTableNumber() << ":\n";
+        cout << "Items:\n";
+        for (const auto& item : items) {
+            cout << "- " << item << "\n";
+        }
+        cout << "Total Price: " << totalPrice << " Rs\n";
+        cout << "Status: " << status << "\n";
+    }
+};
+
+class Payment {
+private:
+    double amount;
+    string method;
+    string transactionDetails;
+
+public:
+    Payment(double paymentAmount, const string& paymentMethod) : amount(paymentAmount), method(paymentMethod), transactionDetails("") {}
+
+    void ProcessPayment() {
+        transactionDetails = "Payment processed successfully";
+    }
+
+    void DisplayPaymentOrder(Order o, const Menu& menu) {
+        o.DisplayOrder();
+        cout << "Total bill: " << o.CalculateTotalPrice(menu) << " Rs\n";
+    }
+};
+
+class Waiter {
+public:
+    string name;
+    string shiftTimings;
+    vector<Table*> assignedTables;
+
+    Waiter(const string& waiterName, const string& timings) : name(waiterName), shiftTimings(timings) {}
+
+    void AssignTable(Table* table) {
+        assignedTables.push_back(table);
+    }
+
+    void TakeOrder(Table* table, Order& order, const Menu& menu) {
+        cout << "Taking order for Table " << table->GetTableNumber() << "\n";
+        order.AddItem("Item 1");
+        order.AddItem("Item 2");
+        order.CalculateTotalPrice(menu);
+        order.UpdateStatus("Received");
+    }
+
+    void ServeOrder(Order& order) {
+        cout << "Serving order for Table " << order.GetTable().GetTableNumber() << "\n";
+        order.UpdateStatus("Served");
+    }
+};
+
+class Customer {
+public:
+    string name;
+    string contactDetails;
+    static int countT;
+
+    Customer(const string& customerName, const string& contact) : name(customerName), contactDetails(contact) {}
+
+    void PlaceOrder(Table* table, Order& order, const Menu& menu) {
+        cout << "Placing order for Table " << table->GetTableNumber() << "\n";
+        order.AddItem("Item 1");
+        order.AddItem("Item 2");
+        order.CalculateTotalPrice(menu);
+        order.UpdateStatus("Received");
+    }
+
+    void MakeReservation(Table* table, Reservation& reservation) {
+        if (countT >= 3) {
+            throw "All tables are occupied";
+        } else {
+            cout << "Making a reservation for Table " << table->GetTableNumber() << "\n";
+            reservation.AssignTable(table);
+            countT++;
+        }
+    }
+    void MakePayment(Order& order, Payment& payment, const Menu& menu) {
+        payment.DisplayPaymentOrder(order, menu);
+    }
+    
+    void CancelReservation(Table* table, Reservation& reservation) {
+    if (reservation.GetTable() == table) {
+        reservation.CancelReservation();
+        cout << "Reservation for Table " << table->GetTableNumber() << " canceled successfully." << endl;
+        countT--;
+    } else {
+        cout << "Reservation for Table " << table->GetTableNumber() << " canceled successfully." << endl;
+    }
+}
+
+
+};
+
+class Chef {
+public:
+    string name;
+    string specialization;
+    bool availability;
+
+    Chef(const string& chefName, const string& chefSpecialization) : name(chefName), specialization(chefSpecialization), availability(true) {}
+
+    void UpdateAvailability(bool isAvailable) {
+        availability = isAvailable;
+    }
+
+    bool IsAvailable() {
+        return availability;
+    }
+
+    const string& GetName() const {
+        return name;
+    }
+};
+
+class Staff {
+public:
+    vector<Waiter*> waiters;
+    vector<Chef*> chefs;
+
+    void AddWaiter(Waiter* waiter) {
+        waiters.push_back(waiter);
+    }
+
+    void AddChef(Chef* chef) {
+        chefs.push_back(chef);
+    }
+
+    void DisplayWaiters() {
+        cout << "Waiters:\n";
+        for (const auto& waiter : waiters) {
+            cout << "- " << waiter->name << "     " << waiter->shiftTimings << "\n";
+        }
+    }
+
+    void DisplayChefs() {
+        cout << "Chefs:\n";
+        for (const auto& chef : chefs) {
+            cout << "- " << chef->name << "    " << chef->specialization << "\n";
+        }
+    }
+
+    void RemoveWaiter(Waiter* waiter) {
+        for (auto it = waiters.begin(); it != waiters.end(); ++it) {
+            if (*it == waiter) {
+                waiters.erase(it);
+                break;
+            }
+        }
+    }
+
+    void RemoveChef(Chef* chef) {
+        for (auto it = chefs.begin(); it != chefs.end(); ++it) {
+            if (*it == chef) {
+                chefs.erase(it);
+                break;
+            }
+        }
+    }
+};
+
+class Restaurant {
+public:
+    string name;
+    string address;
+    vector<Table*> tables;
+    Staff staff;
+    Menu menu;
+    double totalPayment;
+
+    Restaurant(const string& restaurantName, const string& restaurantAddress)
+        : name(restaurantName), address(restaurantAddress), totalPayment(0.0) {}
+
+    void AddTable(Table* table) {
+        tables.push_back(table);
+    }
+
+    void RemoveTable(Table* table) {
+        for (auto it = tables.begin(); it != tables.end(); ++it) {
+            if (*it == table) {
+                tables.erase(it);
+                break;
+            }
+        }
+    }
+
+    void DisplayMenu() {
+        menu.DisplayMenu();
+    }
+
+    void AddMenuItem(const string& dish, double price) {
+        menu.AddDish(dish, price);
+    }
+
+    void RemoveMenuItem(const string& dish) {
+        menu.RemoveDish(dish);
+    }
+
+    void DisplayStaff() {
+        staff.DisplayWaiters();
+        staff.DisplayChefs();
+    }
+
+    void CalculateTotalPayment(double amount) {
+        totalPayment += amount;
+    }
+
+    void AddWaiter(Waiter* waiter) {
+        staff.AddWaiter(waiter);
+    }
+
+    void AddChef(Chef* chef) {
+        staff.AddChef(chef);
+    }
+
+    void RemoveWaiter(Waiter* waiter) {
+        staff.RemoveWaiter(waiter);
+    }
+
+    void RemoveChef(Chef* chef) {
+        staff.RemoveChef(chef);
+    }
+
+    double GetTotalPayment() const {
+        return totalPayment;
+    }
+};
+
+int Customer::countT = 0;
+
+int main() {
+    int opt;
+    Restaurant restaurant("Splash Bar and Restaurant", "Mira Road");
+    Waiter waiter1("Ramesh", "Morning shift");
+    Waiter waiter2("Emma", "Evening shift");
+    restaurant.AddWaiter(&waiter1);
+    restaurant.AddWaiter(&waiter2);
+
+    Chef chef1("Vikas Khanna", "Indian cuisine");
+    Chef chef2("Tsewang Norbu", "Asian cuisine");
+    restaurant.AddChef(&chef1);
+    restaurant.AddChef(&chef2);
+    Menu menu;
+    restaurant.menu.AddDish("Masala-dosa", 100.99);
+    restaurant.menu.AddDish("Idli-Vada", 150.99);
+    restaurant.menu.AddDish("Noodles", 200.99);
+    restaurant.menu.AddDish("Butter-Chicken", 250.99);
+    restaurant.menu.AddDish("Veg-Biryani", 180.99);
+
+    while (true) {
+        cout << "RESTAURANT MANAGEMENT SYSTEM" << endl;
+        cout << "   Splash bar and Restaurant   " << endl;
+        cout << "Press 1 if you are a customer, Press 2 if you are Restaurant management" << endl;
+        cin >> opt;
+          int count=0;
+        switch (opt) {
+            case 1: {
+                  string customerName, contactDetails;
+                cout << "Enter customer name:\n ";
+                cin>>customerName;
+                cout << "Enter contact details: ";
+                 cin>>contactDetails;
+                   Customer c1(customerName, contactDetails);
+                while (!count)
+                {
+              int customerOption;
+                cout << "Customer Operations: \n";
+                cout << "1. Make Reservation\n";
+                cout << "2. Display Menu\n";
+                cout << "3. Place Order\n";
+                cout << "4. Make Payment\n";
+                cout << "5. Cancel Reservation\n";
+                cout << "6. Switch to start\n";
+                cout << "Enter option: ";
+                cin >> customerOption;
+                switch (customerOption) {
+                    case 1: {
+                        int tableNumber, guests;
+                        cout << "Enter table number: ";
+                        cin >> tableNumber;
+                        cout << "Enter number of guests: ";
+                        cin >> guests;
+
+                        Table* table = new Table(tableNumber, guests);
+                        Reservation reservation(c1.name, c1.contactDetails, "2023-07-15 18:00", guests);
+                        try
+                        {
+
+                        c1.MakeReservation(table, reservation);
+                        }
+                        catch(const char* e)
+                        {
+                            cout<<e<<endl;
+                        }
+
+                        break;
+                    }
+                    case 2: {
+
+                        restaurant.DisplayMenu();
+                        
+                        break;
+                    }
+                    case 3: {
+
+                        int tableNumber;
+                        cout << "Enter table number: ";
+                        cin >> tableNumber;
+
+                        Table* table = new Table(tableNumber, 0);
+                        Order order(*table);
+
+                        int numItems;
+                        cout << "Enter number of items: ";
+                        cin >> numItems;
+
+                        for (int i = 0; i < numItems; i++) {
+                            string itemName;
+                            cout << "Enter item name: "<<endl;
+                            cin>>itemName;
+                            order.AddItem(itemName);
+                        }
+                        Menu menu;
+                        menu.AddDish("Masala dosa", 100.99);
+                        menu.AddDish("Idli-Vada", 150.99);
+                        menu.AddDish("Noodles", 200.99);
+                        menu.AddDish("Butter-Chicken", 250.99);
+                        menu.AddDish("Veg-Biryani", 180.99);
+
+                        order.CalculateTotalPrice(menu);
+                        order.UpdateStatus("Received");
+
+                        cout << "Order placed successfully!" << endl;
+                        break;
+                    }
+                    case 4: {
+
+                        int tableNumber;
+                        cout << "Enter table number: ";
+                        cin >> tableNumber;
+
+                        Table* table = new Table(tableNumber, 0);
+                        Order order(*table);
+
+                        int numItems;
+                        cout << "Enter number of items: ";
+                        cin >> numItems;
+
+                        for (int i = 0; i < numItems; i++) {
+                            cout << "Enter item name: ";
+                            string itemName;
+                            cin>> itemName;
+                            order.AddItem(itemName);
+                        }
+
+                        Menu menu;
+                        menu.AddDish("Masala-dosa", 100.99);
+                        menu.AddDish("Idli-Vada", 150.99);
+                        menu.AddDish("Noodles", 200.99);
+                        menu.AddDish("Butter-Chicken", 250.99);
+                        menu.AddDish("Veg-Biryani", 180.99);
+
+                        order.CalculateTotalPrice(menu);
+                        order.UpdateStatus("Received");
+
+                        Payment payment(order.totalPrice, "Credit Card");
+                        c1.MakePayment(order, payment, menu);
+
+                        cout << "Payment processed successfully!" << endl;
+                        break;
+                    }
+                    case 5: {
+                        int tableNumber;
+                        cout << "Enter table number to cancel the reservation: ";
+                        cin >> tableNumber;
+
+                        Table* table = new Table(tableNumber, 0);
+                        Reservation reservation("", "", "", 0);
+                        Customer::countT--;
+                        c1.CancelReservation(table, reservation);
+                        break;
+                    }
+                    case 6:
+                    {
+                        count=1;
+                        break;
+                    }
+                    default:
+                        cout << "Invalid option." << endl;
+                        break;
+                }
+                
+            }
+            
+            }
+            break;
+            case 2: {
+                
+                 while (!count)
+                 {
+                    int managementOption;
+                cout << "Restaurant Management Operations: \n";
+                cout << "1. Display Tables\n";
+                cout << "2. Display Menu\n";
+                cout << "3. Display Staff\n";
+                cout << "4. Add Item to Menu\n";
+                cout << "5. Remove Item from Menu\n";
+                cout << "6. Add Waiter\n";
+                cout << "7. Remove Waiter\n";
+                cout<<"8. Add Chef\n";
+                cout<<"9. Remove Chef\n";
+                cout << "10. Calculate Total Payment\n";
+                cout << "11. SWITCH TO START\n";
+                cout << "Enter option: ";
+                cin >> managementOption;
+                switch (managementOption) {
+                    case 1: {
+
+                        cout << "Tables:\n";
+                        cout << "Table 1 - Capacity: 4\n";
+                        cout << "Table 2 - Capacity: 6\n";
+                        cout << "Table 3 - Capacity: 2\n";
+                        break;
+                    }
+                    case 2: {
+
+                        restaurant.DisplayMenu();
+                        break;
+                    }
+                    case 3: {
+
+                        restaurant.DisplayStaff();
+                        break;
+                    }
+                    case 4: {
+
+                        string dish;
+                        double price;
+                        cout << "Enter dish name: ";
+                        cin >> dish;
+                        cout << "Enter price: ";
+                        cin >> price;
+                        restaurant.AddMenuItem(dish, price);
+                        cout << "Item added to the menu successfully!" << endl;
+                        break;
+                    }
+                    case 5: {
+
+                        string dish;
+                        cout << "Enter dish name to remove: ";
+                        cin >> dish;
+                        restaurant.RemoveMenuItem(dish);
+                        cout << "Item removed from the menu successfully!" << endl;
+                        break;
+                    }
+                    case 6: {
+
+                        string waiterName, shiftTimings;
+                        cout << "Enter waiter name: ";
+                        cin >> waiterName;
+                        cout << "Enter shift timings: ";
+                        cin >> shiftTimings;
+                        Waiter* waiter = new Waiter(waiterName, shiftTimings);
+                        restaurant.AddWaiter(waiter);
+                        cout << "Waiter added successfully!" << endl;
+                        break;
+                    }
+                    case 7: {
+
+                        string waiterName;
+                        cout << "Enter waiter name to remove: ";
+                        cin >> waiterName;
+
+                        const auto& waiters = restaurant.staff.waiters;
+                        for (auto it = waiters.begin(); it != waiters.end(); ++it) {
+                            if ((*it)->name == waiterName) {
+                                restaurant.RemoveWaiter(*it);
+                                cout << "Waiter removed successfully!" << endl;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+
+
+
+
+                    case 8: {
+
+                string chefName, chefSpecialization;
+                cout << "Enter chef name: ";
+                cin.ignore();
+                getline(cin, chefName);
+                cout << "Enter chef specialization: ";
+                getline(cin, chefSpecialization);
+                Chef* chef = new Chef(chefName, chefSpecialization);
+                restaurant.AddChef(chef);
+                cout << "Chef added successfully!" << endl;
+                break;
+            }
+            case 9: {
+
+                string chefName;
+                cout << "Enter chef name to remove: ";
+                cin.ignore();
+                getline(cin, chefName);
+
+                const auto& chefs = restaurant.staff.chefs;
+                for (auto it = chefs.begin(); it != chefs.end(); ++it) {
+                    if ((*it)->name == chefName) {
+                        restaurant.RemoveChef(*it);
+                        cout << "Chef removed successfully!" << endl;
+                        break;
+                    }
+                }
+                break;
+            }
+
+
+
+                    case 10: {
+
+                        double amount;
+                        cout << "Enter amount to add to the total payment: ";
+                        cin >> amount;
+                        restaurant.CalculateTotalPayment(amount);
+                        cout << "Total payment updated successfully!" << endl;
+                        break;
+                    }
+                    case 11:
+                    {
+                        count=1;
+                        break;
+                    }
+                    default:
+                        cout << "Invalid option." << endl;
+                        break;
+                }
+                
+            }
+          break;  
+}
+default:
+                cout << "Invalid option." << endl;
+                break;
+        }
+}
+
+}
